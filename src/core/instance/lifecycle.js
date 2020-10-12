@@ -168,7 +168,7 @@ export function mountComponent (
     }
   }
   callHook(vm, 'beforeMount')
-
+  //开始挂载
   let updateComponent
   /* istanbul ignore if */
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
@@ -190,6 +190,8 @@ export function mountComponent (
     }
   } else {
     updateComponent = () => {
+        //_render: 调用 vm.$options.render 函数并返回生成VNode
+        //_update: 把VNode渲染成真实的DOM
       vm._update(vm._render(), hydrating)
     }
   }
@@ -197,6 +199,7 @@ export function mountComponent (
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
+  //渲染函数的观察者,对updateComponent求值,触发渲染函数render执行,render执行触发数据的get,从而收集依赖,完成重新渲染
   new Watcher(vm, updateComponent, noop, {
     before () {
       if (vm._isMounted && !vm._isDestroyed) {

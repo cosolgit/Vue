@@ -30,7 +30,9 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
 /**
  * Parse simple path.
  */
-const bailRE = new RegExp(`[^${unicodeRegExp.source}.$_\\d]`)
+//obj~a,obj/a,obj*a x  |  obj.a  this.$watcher √
+const bailRE = /[^\w.$]/
+//访问path指定的属性,并触发数据属性的get拦截器
 export function parsePath (path: string): any {
   if (bailRE.test(path)) {
     return

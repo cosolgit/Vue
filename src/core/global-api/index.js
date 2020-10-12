@@ -40,7 +40,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
     mergeOptions,
     defineReactive
   }
-
+  //就是$set,$del
   Vue.set = set
   Vue.delete = del
   Vue.nextTick = nextTick

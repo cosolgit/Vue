@@ -44,13 +44,14 @@ export class Observer {
     this.dep = new Dep()
     this.vmCount = 0
     //使用def定义__ob__,可以定义不可枚举的属性,防止遍历数据时遍历到__ob__属性
-    def(value, '__ob__', this)//__ob__:{data,dep,vmCount}
+    def(value, '__ob__', this)//__ob__:{data,dep,vmCount}对象或数组添加了__ob__
     if (Array.isArray(value)) {
       if (hasProto) {//检测当前环境是否可用__proto__
         protoAugment(value, arrayMethods)
       } else {
         copyAugment(value, arrayMethods, arrayKeys)
       }
+      //数组嵌套数组或对象
       this.observeArray(value)
     } else {
       this.walk(value)
@@ -108,7 +109,7 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
  */
-//asRootData是否是根级数据
+//asRootData是否是根级数据,data
 export function observe (value: any, asRootData: ?boolean): Observer | void {
   if (!isObject(value) || value instanceof VNode) {
     return
@@ -178,6 +179,12 @@ export function defineReactive (
         //?????
         if (childOb) {
           childOb.dep.depend()
+          /*
+            为什么数组就需要调用dependArray,纯对象不需要? (arr:[{a:1},[1,2]]  {{arr}})
+              Vue.$set(this.$data.arr[0],'b',2) 触发不了响应
+              arr[0]的__ob__并没收集到依赖,需要手动触发
+              数组的索引是非响应式的
+          */
           if (Array.isArray(value)) {
             dependArray(value)
           }
@@ -218,20 +225,23 @@ export function defineReactive (
  */
 export function set (target: Array<any> | Object, key: any, val: any): any {
   if (process.env.NODE_ENV !== 'production' &&
-    (isUndef(target) || isPrimitive(target))
+    (isUndef(target) || isPrimitive(target))//是undefined/null/原始类型
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
-  if (Array.isArray(target) && isValidArrayIndex(key)) {
+  //将替换元素改为splice
+  if (Array.isArray(target) && isValidArrayIndex(key)) {//是否是有效的数组索引
     target.length = Math.max(target.length, key)
     target.splice(key, 1, val)
     return val
   }
+  //如果xx不是变量私有属性,而是原型上的 hasOwn就不成立
   if (key in target && !(key in Object.prototype)) {
     target[key] = val
     return val
   }
   const ob = (target: any).__ob__
+  //根数据对象的__ob__.vmCount>0   根数据对象不是响应式的
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -239,7 +249,7 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     )
     return val
   }
-  if (!ob) {
+  if (!ob) {//非响应式的
     target[key] = val
     return val
   }
@@ -286,6 +296,7 @@ export function del (target: Array<any> | Object, key: any) {
 function dependArray (value: Array<any>) {
   for (let e, i = 0, l = value.length; i < l; i++) {
     e = value[i]
+    //是数组就执行依赖
     e && e.__ob__ && e.__ob__.dep.depend()
     if (Array.isArray(e)) {
       dependArray(e)

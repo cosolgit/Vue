@@ -15,6 +15,7 @@ const idToTemplate = cached(id => {
 })
 
 const mount = Vue.prototype.$mount
+//重写是为了增加编译模板的能力
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
@@ -56,6 +57,7 @@ Vue.prototype.$mount = function (
     } else if (el) {
       template = getOuterHTML(el)
     }
+    //template可能是空字符串
     if (template) {
       /* istanbul ignore if */
       if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
@@ -86,7 +88,6 @@ Vue.prototype.$mount = function (
  * Get outerHTML of elements, taking care
  * of SVG elements in IE as well.
  */
-// 获取元素的 innerHTML
 function getOuterHTML (el: Element): string {
   if (el.outerHTML) {
     return el.outerHTML
@@ -96,7 +97,7 @@ function getOuterHTML (el: Element): string {
     return container.innerHTML
   }
 }
-
+//将字符串编译成渲染函数
 Vue.compile = compileToFunctions
 
 export default Vue

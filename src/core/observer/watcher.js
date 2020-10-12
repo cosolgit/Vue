@@ -53,25 +53,33 @@ export default class Watcher {
     if (isRenderWatcher) {
       vm._watcher = this
     }
+    //
     vm._watchers.push(this)
     // options
     if (options) {
       this.deep = !!options.deep
-      this.user = !!options.user
-      this.lazy = !!options.lazy
-      this.sync = !!options.sync
-      this.before = options.before
+      this.user = !!options.user//是 开发者定义的(通过watch或$watch函数定义的观察者,回调函数是开发者写的) 还是 内部定义的
+      this.lazy = !!options.lazy//是否是computed的watcher
+      this.sync = !!options.sync//当数据变化时是否同步求值并执行回调
+      this.before = options.before//watcher实例的钩子,当数据变化之后,触发更新之前,
     } else {
       this.deep = this.user = this.lazy = this.sync = false
     }
     this.cb = cb
     this.id = ++uid // uid for batching
     this.active = true
+    //只有computed watcher才有dirty
     this.dirty = this.lazy // for lazy watchers
+    //newDepIds 用来在一次求值中避免收集重复的观察者
+    //每次求值收集观察者完成后,将newDepIds 和 newDeps赋值给depIds和 deps,并清空
+    //depIds 用来避免重复求值时收集重复的观察者
+    //newDepIds 和 newDeps当次求值收集到的dep实例对象
+    //depIds和deps上次求值过程中收集到的对象
     this.deps = []
     this.newDeps = []
     this.depIds = new Set()
     this.newDepIds = new Set()
+    //提示错误
     this.expression = process.env.NODE_ENV !== 'production'
       ? expOrFn.toString()
       : ''
@@ -80,6 +88,7 @@ export default class Watcher {
       this.getter = expOrFn
     } else {
       this.getter = parsePath(expOrFn)
+      //parsePath解析失败了
       if (!this.getter) {
         this.getter = noop
         process.env.NODE_ENV !== 'production' && warn(
@@ -90,6 +99,7 @@ export default class Watcher {
         )
       }
     }
+    //保存着被观察目标的值
     this.value = this.lazy
       ? undefined
       : this.get()
@@ -98,6 +108,11 @@ export default class Watcher {
   /**
    * Evaluate the getter, and re-collect dependencies.
    */
+  /*
+    求值
+    1.触发访问器属性的get
+    2.获得被观察目标的值
+  */
   get () {
     pushTarget(this)
     let value
@@ -127,9 +142,11 @@ export default class Watcher {
    */
   addDep (dep: Dep) {
     const id = dep.id
+    //避免在一次求值过程收集重复依赖
     if (!this.newDepIds.has(id)) {
       this.newDepIds.add(id)
       this.newDeps.push(dep)
+      //避免在多次求值过程收集重复依赖
       if (!this.depIds.has(id)) {
         dep.addSub(this)
       }
@@ -143,6 +160,7 @@ export default class Watcher {
     let i = this.deps.length
     while (i--) {
       const dep = this.deps[i]
+      //上次求值收集到的Dep实例对象是否存在于这次求值所收集到的Dep实例中.不存在说明该Dep对象和观察者不存在依赖关系
       if (!this.newDepIds.has(dep.id)) {
         dep.removeSub(this)
       }
@@ -178,8 +196,11 @@ export default class Watcher {
    */
   run () {
     if (this.active) {
+      //对于渲染函数观察者,this.get就是updateComponent函数的返回值undefined
       const value = this.get()
       if (
+        //新旧值不相等执行回调
+        //如果是对象,引用不变也执行回调
         value !== this.value ||
         // Deep watchers and watchers on Object/Arrays should fire even
         // when the value is the same, because the value may

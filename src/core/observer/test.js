@@ -82,3 +82,35 @@ mutationMethods.forEach(method => {
     }
 })
 
+
+
+
+function fn(func,wait){
+    let interv= function(){
+      func()
+      setTimeout(interv,wait)
+    }
+    setTimeout(interv)
+  }
+  
+  fn(()=>{console.log(111)},1000)
+  
+
+
+  let resolvePromise = new Promise(resolve => {
+    let resolvedPromise = Promise.resolve()
+    resolve(resolvedPromise)//Promise.resolve().then(() => resolvedPromise.then(resolve))
+  })
+  resolvePromise.then(() => {
+    console.log('resolvePromise resolved')
+  })
+  let resolvedPromiseThen = Promise.resolve().then(res => {
+    console.log('promise1')
+  })
+  resolvedPromiseThen
+    .then(() => {
+      console.log('promise2')
+    })
+    .then(() => {
+      console.log('promise3')
+    })
