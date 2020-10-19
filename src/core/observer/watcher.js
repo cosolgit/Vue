@@ -58,7 +58,7 @@ export default class Watcher {
     // options
     if (options) {
       this.deep = !!options.deep
-      this.user = !!options.user//是 开发者定义的(通过watch或$watch函数定义的观察者,回调函数是开发者写的) 还是 内部定义的
+      this.user = !!options.user//是 用户定义的(通过watch或$watch函数定义的观察者,回调函数是开发者写的) 还是 内部定义的
       this.lazy = !!options.lazy//是否是computed的watcher
       this.sync = !!options.sync//当数据变化时是否同步求值并执行回调
       this.before = options.before//watcher实例的钩子,当数据变化之后,触发更新之前,
@@ -68,7 +68,7 @@ export default class Watcher {
     this.cb = cb
     this.id = ++uid // uid for batching
     this.active = true
-    //只有computed watcher才有dirty
+    //只有computed watcher才有dirty,是否需要重新执行
     this.dirty = this.lazy // for lazy watchers
     //newDepIds 用来在一次求值中避免收集重复的观察者
     //每次求值收集观察者完成后,将newDepIds 和 newDeps赋值给depIds和 deps,并清空
@@ -114,11 +114,11 @@ export default class Watcher {
     2.获得被观察目标的值
   */
   get () {
-    pushTarget(this)
+    pushTarget(this)//将当前user-watcher实例赋值给Dep.target，读取时收集它
     let value
     const vm = this.vm
     try {
-      value = this.getter.call(vm, vm)
+      value = this.getter.call(vm, vm) // 将vm实例传给闭包，进行读取操作
     } catch (e) {
       if (this.user) {
         handleError(e, vm, `getter for watcher "${this.expression}"`)
@@ -182,6 +182,7 @@ export default class Watcher {
   update () {
     /* istanbul ignore else */
     if (this.lazy) {
+      //只有当依赖改变才会dirty=true重新计算
       this.dirty = true
     } else if (this.sync) {
       this.run()
@@ -229,6 +230,7 @@ export default class Watcher {
    * This only gets called for lazy watchers.
    */
   evaluate () {
+    //惰性求值
     this.value = this.get()
     this.dirty = false
   }
@@ -237,9 +239,22 @@ export default class Watcher {
    * Depend on all deps collected by this watcher.
    */
   depend () {
-    let i = this.deps.length
+    //renderWatcher
+    /*
+      data(){return {a:1}}
+      compA(){return this.a+1}
+      compA依赖a,a收集计算属性观察者对象,计算属性观察者对象收集渲染函数观察者对象
+      执行完evaluate后,computed watcher弹出栈
+    */
+    /*
+      computed内的响应式数据会收集computed-watcher和render-watcher两个watcher,
+      当computed内的状态发生变更触发set后,首先触发update通知computed需要进行重新计算,
+      然后通知到视图执行渲染，再渲染中会访问到computed计算后的值，最后渲染到页面
+    */
+    //计算属性内的值须是响应式数据才能触发重新计算。
+    let i = this.deps.length// deps内是计算属性内能访问到的响应式数据的dep的数组集合
     while (i--) {
-      this.deps[i].depend()
+      this.deps[i].depend()//每个dep收集当前的render-watcher
     }
   }
 
@@ -251,6 +266,7 @@ export default class Watcher {
       // remove self from vm's watcher list
       // this is a somewhat expensive operation so we skip it
       // if the vm is being destroyed.
+      //组件是否被销毁  
       if (!this.vm._isBeingDestroyed) {
         remove(this.vm._watchers, this)
       }

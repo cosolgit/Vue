@@ -55,7 +55,7 @@ export default class Dep {
 // can be evaluated at a time.
 Dep.target = null
 const targetStack = []
-//将watcher实例赋值给Dep.target,即将要收集的目标
+//将当前栈顶watcher实例赋值给Dep.target,即将要收集的目标
 export function pushTarget (target: ?Watcher) {
   targetStack.push(target)
   Dep.target = target

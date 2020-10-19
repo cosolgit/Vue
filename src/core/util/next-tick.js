@@ -15,6 +15,14 @@ function flushCallbacks () {
   const copies = callbacks.slice(0)
   callbacks.length = 0
   for (let i = 0; i < copies.length; i++) {
+    //先添加的回调函数先执行
+    //@example
+    //data(){return { msg:'hello world' }}
+    //this.$nextTick(()=>{console.log(this.$refs.msg.innerHTML)})
+    //this.msg = 'hello vue'
+    //console.log(this.$refs.msg.innerHTML)
+    //最后输出的是2个hello world,因为第一个nextTick将回调push到callbacks,修改msg会将渲染视图的回调(flushSchedulerQueue)push到callbacks
+    //但是由于是按顺序遍历数组,nextTick的回调会先执行,所以仍然输出的是'hello world'
     copies[i]()
   }
 }
@@ -30,7 +38,7 @@ function flushCallbacks () {
 // where microtasks have too high a priority and fire in between supposedly
 // sequential events (e.g. #4521, #6690, which have workarounds)
 // or even between bubbling of the same event (#6566).
-let timerFunc
+let timerFunc//把flushCallbacks注册为microtask
 
 // The nextTick behavior leverages the microtask queue, which can be accessed
 // via either native Promise.then or MutationObserver.
@@ -74,6 +82,7 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   // Fallback to setImmediate.
   // Technically it leverages the (macro) task queue,
   // but it is still a better choice than setTimeout.
+  //setTimeout将回调函数注册为(macro)task 之前要不停的做超时检测，而 setImmediate(有兼容性) 则不需要
   timerFunc = () => {
     setImmediate(flushCallbacks)
   }
@@ -83,7 +92,12 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
     setTimeout(flushCallbacks, 0)
   }
 }
-
+/*
+  当调用栈空闲后每次事件循环只会从 (macro)task 中读取一个任务并执行，
+  而在同一次事件循环内会将 microtask 队列中所有的任务全部执行完毕，且要先于 (macro)task。
+  另外 (macro)task 中两个不同的任务之间可能穿插着UI的重渲染，
+  那么我们只需要在 microtask 中把所有在UI重渲染之前需要更新的数据全部更新，这样只需要一次重渲染就能得到最新的DOM了
+*/
 export function nextTick (cb?: Function, ctx?: Object) {
   let _resolve
   callbacks.push(() => {
@@ -94,11 +108,15 @@ export function nextTick (cb?: Function, ctx?: Object) {
         handleError(e, ctx, 'nextTick')
       }
     } else if (_resolve) {
+      //不传递回调函数,将this.$nextTick这个Promise的状态变为resolve,就会跳到then调用
       _resolve(ctx)
     }
   })
   if (!pending) {
+    //回调队列是否处于执行的状态
     pending = true
+    //只有第一次调用$nextTick时才会执行,将flushCallbacks注册为microtask,等待调用栈被清空后才执行,callbacks回调队列包含了本次事件循环所有通过$nextTick注册的回调
+    //然后执行flushCallbacks,将回调执行清空
     timerFunc()
   }
   // $flow-disable-line

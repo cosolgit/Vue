@@ -48,8 +48,9 @@ export function resolveInject (inject: any, vm: Component): ?Object {
       const key = keys[i]
       // #6574 in case the inject object is observed...
       if (key === '__ob__') continue
-      const provideKey = inject[key].from
+      const provideKey = inject[key].from//vm._provide的键名
       let source = vm
+       // 循环向上找含有当前 provideKey 的组件
       while (source) {
         if (source._provided && hasOwn(source._provided, provideKey)) {
           result[key] = source._provided[provideKey]

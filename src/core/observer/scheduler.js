@@ -68,6 +68,7 @@ if (inBrowser && !isIE) {
 /**
  * Flush both queues and run the watchers.
  */
+//将队列中的观察者统一执行更新
 function flushSchedulerQueue () {
   currentFlushTimestamp = getNow()
   flushing = true
@@ -81,6 +82,9 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+  //组件更新的顺序是从父组件到子组件的顺序，因为父组件总是比子组件先创建
+  //一个组件的user watchers(侦听器watcher)比render watcher先运行,因为user watchers往往比render watcher更早创建
+  //如果一个组件在父组件watcher运行期间被销毁，它的watcher执行将被跳过
   queue.sort((a, b) => a.id - b.id)
 
   // do not cache length because more watchers might be pushed
@@ -170,9 +174,9 @@ export function queueWatcher (watcher: Watcher) {
     if (!flushing) {
       queue.push(watcher)
     } else {
-      //计算属性, 队列执行更新时会执行渲染函数观察者的更新,渲染函数中可能有计算属性,
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
+      //计算属性, 队列执行更新时会执行渲染函数观察者的更新,渲染函数中可能有计算属性,
       let i = queue.length - 1
       while (i > index && queue[i].id > watcher.id) {
         i--

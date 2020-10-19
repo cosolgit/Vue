@@ -62,14 +62,16 @@ export function initState (vm: Component) {
 }
 
 function initProps (vm: Component, propsOptions: Object) {
+  //外界传递进来的props的值
   const propsData = vm.$options.propsData || {}
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
   const keys = vm.$options._propKeys = []
-  const isRoot = !vm.$parent
+  const isRoot = !vm.$parent//根组件$parent为null
   // root instance props should be converted
   if (!isRoot) {
+    //如果是根组件,定义的props值会被定义为响应式的
     toggleObserving(false)
   }
   for (const key in propsOptions) {
@@ -77,7 +79,9 @@ function initProps (vm: Component, propsOptions: Object) {
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
+      //转为连字符加小写
       const hyphenatedKey = hyphenate(key)
+      //不能是key,ref,slot,slot-scope,is保留属性
       if (isReservedAttribute(hyphenatedKey) ||
           config.isReservedAttr(hyphenatedKey)) {
         warn(
@@ -102,10 +106,12 @@ function initProps (vm: Component, propsOptions: Object) {
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
+    //代理操作在子组件extend构造的时候就完成了
     if (!(key in vm)) {
       proxy(vm, `_props`, key)
     }
   }
+  //不影响后续代码功能
   toggleObserving(true)
 }
 /*
@@ -178,12 +184,14 @@ const computedWatcherOptions = { lazy: true }
 
 function initComputed (vm: Component, computed: Object) {
   // $flow-disable-line
+  //用来存储计算属性观察者
   const watchers = vm._computedWatchers = Object.create(null)
   // computed properties are just getters during SSR
   const isSSR = isServerRendering()
 
   for (const key in computed) {
     const userDef = computed[key]
+    //计算属性有2种写法
     const getter = typeof userDef === 'function' ? userDef : userDef.get
     if (process.env.NODE_ENV !== 'production' && getter == null) {
       warn(
@@ -194,6 +202,7 @@ function initComputed (vm: Component, computed: Object) {
 
     if (!isSSR) {
       // create internal watcher for the computed property.
+      //计算属性的观察者
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -216,7 +225,8 @@ function initComputed (vm: Component, computed: Object) {
     }
   }
 }
-
+//在组件实例对象上定义与计算属性同名的组件实例一个访问器属性
+//当页面执行渲染访问到computed时,才回触发get执行createComputedGetter
 export function defineComputed (
   target: any,
   key: string,
@@ -255,7 +265,7 @@ function createComputedGetter (key) {
       if (watcher.dirty) {
         watcher.evaluate()
       }
-      if (Dep.target) {
+      if (Dep.target) { //render-watcher
         watcher.depend()
       }
       return watcher.value
@@ -300,7 +310,7 @@ function initMethods (vm: Component, methods: Object) {
 function initWatch (vm: Component, watch: Object) {
   for (const key in watch) {
     const handler = watch[key]
-    if (Array.isArray(handler)) {
+    if (Array.isArray(handler)) {//watch键可以是数组
       for (let i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i])
       }
@@ -316,10 +326,15 @@ function createWatcher (
   handler: any,
   options?: Object
 ) {
+  //对象,参数移位
   if (isPlainObject(handler)) {
     options = handler
     handler = handler.handler
   }
+  /*
+    watch: {name: 'handleNameChange'},
+    methods: {handleNameChange () {console.log('name change')}}
+  */
   if (typeof handler === 'string') {
     handler = vm[handler]
   }
@@ -372,6 +387,9 @@ export function stateMixin (Vue: Class<Component>) {
         handleError(error, vm, `callback for immediate watcher "${watcher.expression}"`)
       }
     }
+    //解除当前观察者对属性的观察
+    // this.unwatch=this.$watch('name',newName=>{})
+    // this.unwatch()
     return function unwatchFn () {
       watcher.teardown()
     }

@@ -168,6 +168,8 @@ export function defineReactive (
         walk中(默认) defineReactive      shallow=undefined
         initRender中 defineReactive      shallow=true
   */
+  //initProps时,shallow为false,observe执行,但是shouldObserve也为false,oberve无效,即不将值转为响应式
+  //由于props是通过defineReactive本身是响应式,但没对值进行深度定义(因为props来自父组件如果是数组/对象已经是响应式的了)
   let childOb = !shallow && observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
