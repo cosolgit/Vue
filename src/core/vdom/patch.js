@@ -300,8 +300,9 @@ export function createPatchFunction (backend) {
     }
     return isDef(vnode.tag)
   }
-
+  //原生事件绑定
   function invokeCreateHooks (vnode, insertedVnodeQueue) {
+    // cbs.create其中一个函数就是updateDOMListeners ,就是updateListeners
     for (let i = 0; i < cbs.create.length; ++i) {
       cbs.create[i](emptyNode, vnode)
     }

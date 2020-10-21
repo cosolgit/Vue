@@ -114,3 +114,49 @@ function fn(func,wait){
     .then(() => {
       console.log('promise3')
     })
+
+//自定义事件名之前是hook:
+//不用在当前实例下挂载一个额外的属性
+//可以封装为一个方法,复用更方便
+new Vue({
+    mounted(){
+        this.attachDatepicker("startDateInput")
+    },
+    methods:{
+        attachDatepicker(refName){
+            const picker = new new Pikaday({  // Pikaday是一个日期选择库
+                field: this.$refs[refName],  // 为input添加日期选择
+                format: 'YYYY-MM-DD'
+            })
+
+            this.$once('hook:beforeDestroy',() => {//监听beforeDestroy钩子
+                picker.destroy()//销毁
+            })
+        }
+    }
+})
+//跨组件通信,$on要比$emit先执行
+export default{
+    methods:{
+        dispatch(componentName, eventName, params){
+            let parent = this.$parent || this.$root;
+            let name = parent.$options.name;
+
+            while(parent && (!name || name !== componentName)){
+                parent = parent.$parent && parent.$options.name;
+            }
+            parent && parent.$emit.apply(parent,[eventName].concat(params))
+        },
+        broadcast(componentName, eventName, params){
+            broadcast.call(this, componentName, eventName, params)
+        }
+    }
+}
+function broadcast(componentName, eventName, params){
+    this.$children.forEach(child => {
+        let name = child.$options.name;
+        name === componentName
+            ? child.$emit.apply(child, [eventName].concat(params))
+            : broadcast.call(child, componentName, eventName, params)
+    })
+}

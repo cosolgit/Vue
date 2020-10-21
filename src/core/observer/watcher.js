@@ -248,8 +248,8 @@ export default class Watcher {
     */
     /*
       computed内的响应式数据会收集computed-watcher和render-watcher两个watcher,
-      当computed内的状态发生变更触发set后,首先触发update通知computed需要进行重新计算,
-      然后通知到视图执行渲染，再渲染中会访问到computed计算后的值，最后渲染到页面
+      当computed内的状态发生变更触发set后notify,首先触发update通知computed需要进行重新计算,
+      然后通知到视图执行渲染，在渲染中会访问到computed计算后的值，最后渲染到页面
     */
     //计算属性内的值须是响应式数据才能触发重新计算。
     let i = this.deps.length// deps内是计算属性内能访问到的响应式数据的dep的数组集合
